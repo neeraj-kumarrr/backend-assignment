@@ -67,6 +67,38 @@
         .admin-badge { background: #dc3545; color: white; }
         .manager-badge { background: #ffc107; color: #212529; }
         .user-badge { background: #28a745; color: white; }
+        
+        /* 🆕 Pagination Styles */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+            gap: 10px;
+        }
+        .pagination button {
+            padding: 8px 12px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .pagination button:hover { background: #5a6268; }
+        .pagination button:disabled { 
+            background: #ccc; 
+            cursor: not-allowed; 
+        }
+        .pagination .current {
+            background: #007bff;
+            font-weight: bold;
+        }
+        .info-text {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -119,16 +151,23 @@
             <button onclick="createUser()">Create User</button>
 
             <h4>All Users:</h4>
+            <!-- 🆕 Users Info -->
+            <div id="users-info" class="info-text"></div>
+            
             <table id="users-table">
                 <thead>
                     <tr>
                         <th>Username</th>
                         <th>Role</th>
                         <th>Created</th>
+                        <th>Actions</th> <!-- 🆕 Delete Actions -->
                     </tr>
                 </thead>
                 <tbody id="users-tbody"></tbody>
             </table>
+            
+            <!-- 🆕 Users Pagination -->
+            <div id="users-pagination" class="pagination"></div>
         </div>
 
         <!-- Activity Logs -->
@@ -145,6 +184,9 @@
             <!-- Role permission info -->
             <div id="role-permission-info" style="margin-bottom: 15px;"></div>
             
+            <!-- 🆕 Logs Info -->
+            <div id="logs-info" class="info-text"></div>
+            
             <table>
                 <thead>
                     <tr>
@@ -157,12 +199,21 @@
                 </thead>
                 <tbody id="logs-tbody"></tbody>
             </table>
+            
+            <!-- 🆕 Logs Pagination -->
+            <div id="logs-pagination" class="pagination"></div>
         </div>
     </div>
 
     <script>
         let currentUser = null;
         let token = null;
+        
+        // 🆕 Pagination state
+        let currentUsersPage = 1;
+        let currentLogsPage = 1;
+        let totalUsersPages = 1;
+        let totalLogsPages = 1;
 
         // Show message
         function showMessage(text, type = 'success') {
@@ -260,6 +311,8 @@
         function logout() {
             currentUser = null;
             token = null;
+            currentUsersPage = 1;
+            currentLogsPage = 1;
             document.getElementById('login-section').classList.remove('hidden');
             document.getElementById('dashboard').classList.add('hidden');
             document.getElementById('admin-panel').classList.add('hidden');
@@ -278,7 +331,7 @@
             if (currentUser.role === 'admin') {
                 infoDiv.innerHTML = `
                     <div style="background: #e7f3ff; padding: 10px; border-radius: 5px; border-left: 4px solid #007bff;">
-                        <strong>🔴 ADMIN PRIVILEGES:</strong> You have full control - View, Update, Delete logs
+                        <strong>🔴 ADMIN PRIVILEGES:</strong> You have full control - View, Update, Delete logs & users
                     </div>
                 `;
             } else if (currentUser.role === 'manager') {
@@ -335,34 +388,54 @@
             }
         }
 
-        // Load Users (Admin only)
-        async function loadUsers() {
+        // 🆕 Load Users with Pagination
+        async function loadUsers(page = 1) {
             try {
-                const response = await apiCall('/admin/users');
+                const response = await apiCall(`/admin/users?page=${page}&limit=5`);
                 const tbody = document.getElementById('users-tbody');
                 
-                tbody.innerHTML = response.users.map(user => `
+                currentUsersPage = response.page;
+                totalUsersPages = response.totalPages;
+                
+                // Update info
+                document.getElementById('users-info').textContent = 
+                    `Showing ${response.docs.length} of ${response.totalDocs} users (Page ${response.page}/${response.totalPages})`;
+                
+                tbody.innerHTML = response.docs.map(user => `
                     <tr>
                         <td>${user.username}</td>
                         <td><span class="${user.role}-badge role-badge">${user.role.toUpperCase()}</span></td>
                         <td>${new Date(user.createdAt).toLocaleDateString()}</td>
+                        <td>
+                            <button onclick="deleteUser('${user._id}', '${user.username}')" class="small-btn red">🗑️ Delete</button>
+                        </td>
                     </tr>
                 `).join('');
+                
+                // Update pagination
+                updateUsersPagination();
             } catch (error) {
                 console.error('Error loading users:', error);
             }
         }
 
-        // Load Logs (Admin & Manager)
-        async function loadLogs() {
+        // 🆕 Load Logs with Pagination
+        async function loadLogs(page = 1) {
             try {
-                const response = await apiCall('/activity/logs');
+                const response = await apiCall(`/activity/logs?page=${page}&limit=2`);
                 const tbody = document.getElementById('logs-tbody');
                 
-                if (response.logs && response.logs.length > 0) {
+                currentLogsPage = response.page;
+                totalLogsPages = response.totalPages;
+                
+                // Update info
+                document.getElementById('logs-info').textContent = 
+                    `Showing ${response.docs.length} of ${response.totalDocs} logs (Page ${response.page}/${response.totalPages})`;
+                
+                if (response.docs && response.docs.length > 0) {
                     if (currentUser.role === 'admin') {
                         // Admin sees logs with action buttons
-                        tbody.innerHTML = response.logs.map(log => `
+                        tbody.innerHTML = response.docs.map(log => `
                             <tr>
                                 <td>${log.username}</td>
                                 <td><span class="${log.role}-badge role-badge">${log.role.toUpperCase()}</span></td>
@@ -376,7 +449,7 @@
                         `).join('');
                     } else {
                         // Manager sees read-only logs
-                        tbody.innerHTML = response.logs.map(log => `
+                        tbody.innerHTML = response.docs.map(log => `
                             <tr>
                                 <td>${log.username}</td>
                                 <td><span class="${log.role}-badge role-badge">${log.role.toUpperCase()}</span></td>
@@ -389,12 +462,87 @@
                     const colspan = currentUser.role === 'admin' ? '5' : '4';
                     tbody.innerHTML = `<tr><td colspan="${colspan}">No logs yet. Click some buttons!</td></tr>`;
                 }
+                
+                // Update pagination
+                updateLogsPagination();
             } catch (error) {
                 console.error('Error loading logs:', error);
             }
         }
 
-        // 🆕 Admin-only: Update Log
+        // 🆕 Update Users Pagination
+        function updateUsersPagination() {
+            const pagination = document.getElementById('users-pagination');
+            
+            if (totalUsersPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+            
+            let paginationHTML = '';
+            
+            // Previous button
+            paginationHTML += `<button onclick="loadUsers(${currentUsersPage - 1})" ${currentUsersPage === 1 ? 'disabled' : ''}>❮ Prev</button>`;
+            
+            // Page numbers
+            for (let i = 1; i <= totalUsersPages; i++) {
+                const current = i === currentUsersPage ? 'current' : '';
+                paginationHTML += `<button class="${current}" onclick="loadUsers(${i})">${i}</button>`;
+            }
+            
+            // Next button
+            paginationHTML += `<button onclick="loadUsers(${currentUsersPage + 1})" ${currentUsersPage === totalUsersPages ? 'disabled' : ''}>Next ❯</button>`;
+            
+            pagination.innerHTML = paginationHTML;
+        }
+
+        // 🆕 Update Logs Pagination
+        function updateLogsPagination() {
+            const pagination = document.getElementById('logs-pagination');
+            
+            if (totalLogsPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+            
+            let paginationHTML = '';
+            
+            // Previous button
+            paginationHTML += `<button onclick="loadLogs(${currentLogsPage - 1})" ${currentLogsPage === 1 ? 'disabled' : ''}>❮ Prev</button>`;
+            
+            // Page numbers
+            for (let i = 1; i <= totalLogsPages; i++) {
+                const current = i === currentLogsPage ? 'current' : '';
+                paginationHTML += `<button class="${current}" onclick="loadLogs(${i})">${i}</button>`;
+            }
+            
+            // Next button
+            paginationHTML += `<button onclick="loadLogs(${currentLogsPage + 1})" ${currentLogsPage === totalLogsPages ? 'disabled' : ''}>Next ❯</button>`;
+            
+            pagination.innerHTML = paginationHTML;
+        }
+
+        // 🆕 Delete User (Admin only)
+        async function deleteUser(userId, username) {
+            if (currentUser.role !== 'admin') {
+                showMessage('❌ Only admins can delete users', 'error');
+                return;
+            }
+            
+            if (!confirm(`⚠️ Are you sure you want to delete user "${username}"?\nThis action cannot be undone!`)) {
+                return;
+            }
+            
+            try {
+                const response = await apiCall(`/admin/delete-user/${userId}`, 'DELETE');
+                showMessage(`✅ User "${username}" deleted successfully`);
+                loadUsers(currentUsersPage); // Refresh current page
+            } catch (error) {
+                showMessage(`❌ Error deleting user: ${error.message}`, 'error');
+            }
+        }
+
+        // Admin-only: Update Log
         async function updateLog(logId, currentButton) {
             if (currentUser.role !== 'admin') {
                 showMessage('❌ Only admins can update logs', 'error');
@@ -404,7 +552,7 @@
             const newButton = prompt(`Update button click (current: ${currentButton})\nEnter "Button A" or "Button B":`, currentButton);
             
             if (!newButton || (newButton !== 'Button A' && newButton !== 'Button B')) {
-                if (newButton !== null) { // User didn't cancel
+                if (newButton !== null) {
                     showMessage('❌ Invalid button. Use "Button A" or "Button B"', 'error');
                 }
                 return;
@@ -415,13 +563,13 @@
                     buttonClicked: newButton
                 });
                 showMessage(`✅ ${response.message}`);
-                loadLogs(); // Refresh logs
+                loadLogs(currentLogsPage);
             } catch (error) {
                 showMessage(`❌ Error updating log: ${error.message}`, 'error');
             }
         }
 
-        // 🆕 Admin-only: Delete Log
+        // Admin-only: Delete Log
         async function deleteLog(logId) {
             if (currentUser.role !== 'admin') {
                 showMessage('❌ Only admins can delete logs', 'error');
@@ -435,13 +583,13 @@
             try {
                 const response = await apiCall(`/activity/delete/${logId}`, 'DELETE');
                 showMessage(`✅ ${response.message}`);
-                loadLogs(); // Refresh logs
+                loadLogs(currentLogsPage);
             } catch (error) {
                 showMessage(`❌ Error deleting log: ${error.message}`, 'error');
             }
         }
 
-        // 🆕 Admin-only: Clear All Logs
+        // Admin-only: Clear All Logs
         async function clearAllLogs() {
             if (currentUser.role !== 'admin') {
                 showMessage('❌ Only admins can clear all logs', 'error');
@@ -455,13 +603,13 @@
             try {
                 await apiCall('/activity/logs/clear', 'DELETE');
                 showMessage('✅ All logs cleared successfully');
-                loadLogs(); // Refresh logs
+                loadLogs(1);
             } catch (error) {
                 showMessage(`❌ Error clearing logs: ${error.message}`, 'error');
             }
         }
 
-        console.log('🚀 RBAC Frontend ready!');
+        console.log('🚀 RBAC Frontend ready with pagination!');
         console.log('📡 Make sure backend is running on http://localhost:8000');
     </script>
 </body>

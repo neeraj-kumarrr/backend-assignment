@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 
+import aggregatePaginate from "mongoose-aggregate-paginate-v2";
+
 const activityLogSchema = new mongoose.Schema(
   {
     userId: {
@@ -31,6 +33,8 @@ const activityLogSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+activityLogSchema.plugin(aggregatePaginate)
 
 const ActivityLog = mongoose.model("ActivityLog", activityLogSchema);
 

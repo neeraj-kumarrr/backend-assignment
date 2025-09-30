@@ -14,9 +14,6 @@ export const createAdmin = async( req ,res) =>{
     return res.status(201).json({admin})
 }
 
-
-
-
 export const createUser = async (req, res) => {
   try {
     const { username, password, role } = req.body;
@@ -43,8 +40,24 @@ export const createUser = async (req, res) => {
 // Get all users (admin only)
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select('-password');
-    res.json({ users });
+    const pipeline = [
+      // Remove password from results
+      { $project: { password: 0 } },
+      // Sort by creation date
+      { $sort: { createdAt: -1 } }
+    ];
+
+    const options = {
+      page: parseInt(req.query.page) || 1,
+      limit: parseInt(req.query.limit) || 10
+    };
+
+    const result = await User.aggregatePaginate(
+      User.aggregate(pipeline), 
+      options
+    );
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -77,3 +90,16 @@ export const assignRole = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+
+export const deleteUser = async(req ,res)=> {
+
+    const {userId} = req.params
+
+    const deletedUser = User.findByIdAndDelete(userId)
+
+    return res.status(200).json("user deleted successfully" ,{deletedUser})
+
+
+    
+}

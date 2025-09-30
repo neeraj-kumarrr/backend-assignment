@@ -1,6 +1,6 @@
 import express from 'express';
 import { protect, authorize} from '../middlewares/auth.js';
-import { createUser, getAllUsers, assignRole, createAdmin } from '../controllers/adminController.js'
+import { createUser, getAllUsers, assignRole, createAdmin ,deleteUser } from '../controllers/adminController.js'
 
 const router = express.Router();
 
@@ -14,5 +14,7 @@ router.get('/users', protect, authorize(['admin']), getAllUsers);
 
 // Assign role (admin only)
 router.put('/assign-role', protect , authorize(['admin']), assignRole);
+
+router.delete("/delete-user/:userId" , protect , authorize(['admin']) , deleteUser)
 
 export default router;

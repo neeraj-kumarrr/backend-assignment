@@ -30,16 +30,27 @@ export const logButtonClick = async (req, res) => {
 // Get activity logs (admin and manager only)
 export const getActivityLogs = async (req, res) => {
   try {
-    const logs = await ActivityLog.find()
-      .populate('userId', 'username role')
-      .sort({ timestamp: -1 })
-      .limit(100);
+    const pipeline = [
+      // Sort by latest first
+      { $sort: { timestamp: -1 } }
+    ];
 
-    res.json({ logs });
+    const options = {
+      page: parseInt(req.query.page) || 1,
+      limit: parseInt(req.query.limit) || 20
+    };
+
+    const result = await ActivityLog.aggregatePaginate(
+      ActivityLog.aggregate(pipeline), 
+      options
+    );
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
 
 
 export const updateLog = async (req, res) => {

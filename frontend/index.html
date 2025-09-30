@@ -534,7 +534,7 @@
             }
             
             try {
-                const response = await apiCall(`/delete-user/${userId}`, 'DELETE');
+                const response = await apiCall(`/admin/delete-user/${userId}`, 'DELETE');
                 showMessage(`✅ User "${username}" deleted successfully`);
                 loadUsers(currentUsersPage); // Refresh current page
             } catch (error) {

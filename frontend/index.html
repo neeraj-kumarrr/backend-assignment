@@ -68,7 +68,7 @@
         .manager-badge { background: #ffc107; color: #212529; }
         .user-badge { background: #28a745; color: white; }
         
-        /* 🆕 Pagination Styles */
+        /* Pagination Styles */
         .pagination {
             display: flex;
             justify-content: center;
@@ -104,7 +104,7 @@
 <body>
     <div class="box">
         <h1>🎯 RBAC System Assessment</h1>
-        <p><strong>Backend:</strong> http://localhost:8000 | <strong>Frontend:</strong> Simple HTML</p>
+        <p><strong>Backend:</strong> https://backend-assignment-vk4s.onrender.com | <strong>Frontend:</strong> Vercel</p>
     </div>
 
     <!-- Message -->
@@ -151,7 +151,7 @@
             <button onclick="createUser()">Create User</button>
 
             <h4>All Users:</h4>
-            <!-- 🆕 Users Info -->
+            <!-- Users Info -->
             <div id="users-info" class="info-text"></div>
             
             <table id="users-table">
@@ -160,13 +160,13 @@
                         <th>Username</th>
                         <th>Role</th>
                         <th>Created</th>
-                        <th>Actions</th> <!-- 🆕 Delete Actions -->
+                        <!-- ❌ REMOVED: Actions column for delete -->
                     </tr>
                 </thead>
                 <tbody id="users-tbody"></tbody>
             </table>
             
-            <!-- 🆕 Users Pagination -->
+            <!-- Users Pagination -->
             <div id="users-pagination" class="pagination"></div>
         </div>
 
@@ -184,7 +184,7 @@
             <!-- Role permission info -->
             <div id="role-permission-info" style="margin-bottom: 15px;"></div>
             
-            <!-- 🆕 Logs Info -->
+            <!-- Logs Info -->
             <div id="logs-info" class="info-text"></div>
             
             <table>
@@ -200,7 +200,7 @@
                 <tbody id="logs-tbody"></tbody>
             </table>
             
-            <!-- 🆕 Logs Pagination -->
+            <!-- Logs Pagination -->
             <div id="logs-pagination" class="pagination"></div>
         </div>
     </div>
@@ -209,7 +209,7 @@
         let currentUser = null;
         let token = null;
         
-        // 🆕 Pagination state
+        // Pagination state
         let currentUsersPage = 1;
         let currentLogsPage = 1;
         let totalUsersPages = 1;
@@ -331,7 +331,7 @@
             if (currentUser.role === 'admin') {
                 infoDiv.innerHTML = `
                     <div style="background: #e7f3ff; padding: 10px; border-radius: 5px; border-left: 4px solid #007bff;">
-                        <strong>🔴 ADMIN PRIVILEGES:</strong> You have full control - View, Update, Delete logs & users
+                        <strong>🔴 ADMIN PRIVILEGES:</strong> You have full control - View, Update, Delete logs & create users
                     </div>
                 `;
             } else if (currentUser.role === 'manager') {
@@ -388,7 +388,7 @@
             }
         }
 
-        // 🆕 Load Users with Pagination
+        // 🧹 CLEANED Load Users (No Delete Buttons)
         async function loadUsers(page = 1) {
             try {
                 const response = await apiCall(`/admin/users?page=${page}&limit=5`);
@@ -401,14 +401,12 @@
                 document.getElementById('users-info').textContent = 
                     `Showing ${response.docs.length} of ${response.totalDocs} users (Page ${response.page}/${response.totalPages})`;
                 
+                // ✅ CLEAN: No delete buttons, just display users
                 tbody.innerHTML = response.docs.map(user => `
                     <tr>
                         <td>${user.username}</td>
                         <td><span class="${user.role}-badge role-badge">${user.role.toUpperCase()}</span></td>
                         <td>${new Date(user.createdAt).toLocaleDateString()}</td>
-                        <td>
-                            <button onclick="deleteUser('${user._id}', '${user.username}')" class="small-btn red">🗑️ Delete</button>
-                        </td>
                     </tr>
                 `).join('');
                 
@@ -419,7 +417,7 @@
             }
         }
 
-        // 🆕 Load Logs with Pagination
+        // Load Logs with Pagination (Keep log edit/delete - they work)
         async function loadLogs(page = 1) {
             try {
                 const response = await apiCall(`/activity/logs?page=${page}&limit=2`);
@@ -470,7 +468,7 @@
             }
         }
 
-        // 🆕 Update Users Pagination
+        // Update Users Pagination
         function updateUsersPagination() {
             const pagination = document.getElementById('users-pagination');
             
@@ -496,7 +494,7 @@
             pagination.innerHTML = paginationHTML;
         }
 
-        // 🆕 Update Logs Pagination
+        // Update Logs Pagination
         function updateLogsPagination() {
             const pagination = document.getElementById('logs-pagination');
             
@@ -522,27 +520,9 @@
             pagination.innerHTML = paginationHTML;
         }
 
-        // 🆕 Delete User (Admin only)
-        async function deleteUser(userId, username) {
-            if (currentUser.role !== 'admin') {
-                showMessage('❌ Only admins can delete users', 'error');
-                return;
-            }
-            
-            if (!confirm(`⚠️ Are you sure you want to delete user "${username}"?\nThis action cannot be undone!`)) {
-                return;
-            }
-            
-            try {
-                const response = await apiCall(`/admin/delete-user/${userId}`, 'DELETE');
-                showMessage(`✅ User "${username}" deleted successfully`);
-                loadUsers(currentUsersPage); // Refresh current page
-            } catch (error) {
-                showMessage(`❌ Error deleting user: ${error.message}`, 'error');
-            }
-        }
+        // ❌ REMOVED: deleteUser function completely
 
-        // Admin-only: Update Log
+        // Admin-only: Update Log (Keep - this works)
         async function updateLog(logId, currentButton) {
             if (currentUser.role !== 'admin') {
                 showMessage('❌ Only admins can update logs', 'error');
@@ -569,7 +549,7 @@
             }
         }
 
-        // Admin-only: Delete Log
+        // Admin-only: Delete Log (Keep - this works)
         async function deleteLog(logId) {
             if (currentUser.role !== 'admin') {
                 showMessage('❌ Only admins can delete logs', 'error');
@@ -589,7 +569,7 @@
             }
         }
 
-        // Admin-only: Clear All Logs
+        // Admin-only: Clear All Logs (Keep - this works)
         async function clearAllLogs() {
             if (currentUser.role !== 'admin') {
                 showMessage('❌ Only admins can clear all logs', 'error');
@@ -609,8 +589,8 @@
             }
         }
 
-        console.log('🚀 RBAC Frontend ready with pagination!');
-        console.log('📡 Make sure backend is running on http://localhost:8000');
+        console.log('🚀 RBAC Frontend ready - Clean Version!');
+        console.log('📡 Backend: https://backend-assignment-vk4s.onrender.com');
     </script>
 </body>
 </html>

@@ -5,7 +5,7 @@ export const logButtonClick = async (req, res) => {
   try {
     const { buttonClicked } = req.body;
 
-    if (!['Button A', 'Button B'].includes(buttonClicked)) {
+    if (!['Button A', 'Button B' ,' Button C'].includes(buttonClicked)) {
       return res.status(400).json({ message: 'Invalid button clicked' });
     }
 
@@ -80,6 +80,9 @@ export const updateLog = async (req, res) => {
 
 export const deleteLog = async (req, res) => {
   try {
+
+    console.log("hit del log");
+    
     const { id } = req.params;
 
     const deletedLog = await ActivityLog.findByIdAndDelete(id);
